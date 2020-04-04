@@ -11,12 +11,12 @@ from pygame.locals import (
 )
 
 pygame.init()
-#pygame.font.init()
 myfont = pygame.font.SysFont('freesansbold.ttf', 30)
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 FPS_CAP = 30
+BOSS_HEALTH_MAX = 50
 BOSS_HEALTH_WIDTH = min(300, SCREEN_WIDTH//2)
 BOSS_HEALTH_POSITIONX = (SCREEN_WIDTH - BOSS_HEALTH_WIDTH) // 2
 LAVA_FREQUENCY = 1000 # in milliseconds
@@ -127,7 +127,7 @@ class Volcano(pygame.sprite.Sprite):
                 SCREEN_HEIGHT//2
             )
         )
-        self.healthMax = 25
+        self.healthMax = BOSS_HEALTH_MAX
         self.health = self.healthMax
         self.alive = True
 
@@ -139,8 +139,8 @@ class Volcano(pygame.sprite.Sprite):
                 target[1] -= SCREEN_HEIGHT/2
 
                 # add some deviation to shots
-                target[0] += random.uniform(-SCREEN_WIDTH/5, SCREEN_WIDTH/5)
-                target[1] += random.uniform(-SCREEN_HEIGHT/5, SCREEN_HEIGHT/5)
+                target[0] += random.uniform(-SCREEN_WIDTH/5, SCREEN_WIDTH/4)
+                target[1] += random.uniform(-SCREEN_HEIGHT/5, SCREEN_HEIGHT/4)
 
                 # get hypotenuse and use that to calculate normalized vector
                 radius = math.sqrt(math.pow(target[0], 2) + math.pow(target[1], 2))
@@ -149,7 +149,7 @@ class Volcano(pygame.sprite.Sprite):
                 # generate a vector by picking a random point on a circle and doing math
                 angle = random.uniform(0, 2 * math.pi)
                 target = (math.cos(angle), math.sin(angle))
-            new_Rock = LavaRock((self.rect.centerx + (self.surf.get_width()//2), self.rect.centery), target)
+            new_Rock = LavaRock((self.rect.centerx, self.rect.centery), target)
             return new_Rock
 
     def takeDamage(self):
@@ -231,6 +231,7 @@ def main():
 
         screen.fill((0, 0, 0))
 
+        # Volcano health bar
         pygame.draw.rect(screen, (200, 0, 0), (BOSS_HEALTH_POSITIONX, SCREEN_HEIGHT-30, round(BOSS_HEALTH_WIDTH * (volcano.health / volcano.healthMax)), 30))
 
         for entity in all_sprites:
@@ -243,7 +244,12 @@ def main():
             volcano.takeDamage()
 
         if not volcano.alive:
-            text = myfont.render('You did it!', False, (255, 255, 255))
+            text = myfont.render('You did it, Mount Shasta is cool again!', False, (255, 255, 255))
+            textRect = text.get_rect()
+            textRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 8)
+            screen.blit(text, textRect)
+        elif not player.alive:
+            text = myfont.render('You have died. Now we are all doomed.', False, (255, 255, 255))
             textRect = text.get_rect()
             textRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 8)
             screen.blit(text, textRect)
