@@ -1,5 +1,6 @@
 import math, random, pygame
 from pygame.locals import (
+    RLEACCEL,
     K_w,
     K_a,
     K_s,
@@ -26,6 +27,7 @@ class Player(pygame.sprite.Sprite):
         self.clock = pygame.time.Clock()
 
     def update(self, pressed_keys):
+        # move based on WASD input
         if pressed_keys[K_w]:
             self.rect.move_ip(0, -5)
         if pressed_keys[K_s]:
@@ -35,6 +37,7 @@ class Player(pygame.sprite.Sprite):
         if pressed_keys[K_d]:
             self.rect.move_ip(5, 0)
 
+        # don't move outside the screen
         if self.rect.left < 0:
             self.rect.left = 0
         if self.rect.right > SCREEN_WIDTH:
@@ -46,7 +49,7 @@ class Player(pygame.sprite.Sprite):
 
         #time in milliseconds since we were last here
         dt = self.clock.tick()
-        
+
         if self.invulnerableTimer > 0:
             self.invulnerableTimer -= dt
 
@@ -62,19 +65,21 @@ class Player(pygame.sprite.Sprite):
             self.health -= 1
             self.invulnerableTimer = 1000
             print("hurt, health is now ", self.health)
+            if self.health == 0:
+                self.kill()
 
 class Volcano(pygame.sprite.Sprite):
     def __init__(self):
         super(Volcano, self).__init__()
-        self.surf = pygame.Surface((25, 25))
-        self.surf.fill((200, 0, 0))
+        self.surf = pygame.image.load("images/Volcano.png").convert()
+        self.surf.set_colorkey((255,255,255), RLEACCEL)
         self.rect = (
             (SCREEN_WIDTH-self.surf.get_width())//2,
             (SCREEN_HEIGHT-self.surf.get_height())//2
         )
 
     def throwLava(self):
-        newRock = LavaRock(self.rect)
+        newRock = LavaRock((self.rect[0] + (self.surf.get_width()//2), self.rect[1]))
         return newRock
 
 class LavaRock(pygame.sprite.Sprite):
