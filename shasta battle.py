@@ -110,9 +110,11 @@ class Volcano(pygame.sprite.Sprite):
         super(Volcano, self).__init__()
         self.surf = pygame.image.load("images/Volcano.png").convert()
         self.surf.set_colorkey((255,255,255), RLEACCEL)
-        self.rect = (
-            (SCREEN_WIDTH-self.surf.get_width())//2,
-            (SCREEN_HEIGHT-self.surf.get_height())//2
+        self.rect = self.surf.get_rect(
+            center=(
+                SCREEN_WIDTH//2,
+                SCREEN_HEIGHT//2
+            )
         )
         self.health = 100
 
@@ -158,7 +160,7 @@ def main():
     clock = pygame.time.Clock()
 
     THROWLAVA = pygame.USEREVENT + 1
-    pygame.time.set_timer(THROWLAVA, 0)
+    pygame.time.set_timer(THROWLAVA, 1000)
 
     player = Player()
     volcano = Volcano()
