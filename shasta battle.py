@@ -68,6 +68,9 @@ class Player(pygame.sprite.Sprite):
             if self.health == 0:
                 self.kill()
 
+    def getPosition(self):
+        return [self.rect[0], self.rect[1]]
+
 class Volcano(pygame.sprite.Sprite):
     def __init__(self):
         super(Volcano, self).__init__()
@@ -78,21 +81,34 @@ class Volcano(pygame.sprite.Sprite):
             (SCREEN_HEIGHT-self.surf.get_height())//2
         )
 
-    def throwLava(self):
-        newRock = LavaRock((self.rect[0] + (self.surf.get_width()//2), self.rect[1]))
-        return newRock
+    def throwLava(self, target=''):
+        if target:
+            #print(target)
+            target[0] -= SCREEN_WIDTH/2
+            target[1] -= SCREEN_HEIGHT/2
+
+            target[0] += random.uniform(-SCREEN_WIDTH/5, SCREEN_WIDTH/5)
+            target[1] += random.uniform(-SCREEN_HEIGHT/5, SCREEN_HEIGHT/5)
+            #print(target)
+            radius = math.sqrt(math.pow(target[0], 2) + math.pow(target[1], 2))
+            #print(radius)
+            target = (target[0] / radius, target[1] / radius)
+            #print(target)
+        else:
+            # generate a vector by picking a random point on a circle and doing math
+            angle = random.uniform(0, 2 * math.pi)
+            target = (math.cos(angle), math.sin(angle))
+        new_Rock = LavaRock((self.rect[0] + (self.surf.get_width()//2), self.rect[1]), target)
+        return new_Rock
 
 class LavaRock(pygame.sprite.Sprite):
-    def __init__(self, location):
+    def __init__(self, location, target):
         super(LavaRock, self).__init__()
         self.surf = pygame.Surface((25, 25))
         self.surf.fill((200, 100, 0))
         self.rect = self.surf.get_rect(center=location)
-        self.speed = random.uniform(5, 6)
-
-        # generate a vector by picking a random point on a circle and doing math
-        angle = random.uniform(0, 2 * math.pi)
-        self.direction = (math.cos(angle), math.sin(angle))
+        self.speed = random.uniform(9, 10)
+        self.direction = target
 
     def update(self):
         self.rect.move_ip(int(self.direction[0] * self.speed), int(self.direction[1] * self.speed))
@@ -126,9 +142,10 @@ def main():
                     print("Quit by escape key")
                     running = False
             elif event.type == THROWLAVA:
-                new_rock = volcano.throwLava()
-                enemies.add(new_rock)
-                all_sprites.add(new_rock)
+                for i in range(0, 5):
+                    new_rock = volcano.throwLava(player.getPosition())
+                    enemies.add(new_rock)
+                    all_sprites.add(new_rock)
             elif event.type == QUIT:
                 print("Quit by generic quit event")
                 running = False
