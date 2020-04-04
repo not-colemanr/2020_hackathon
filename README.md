@@ -19,3 +19,8 @@ WASD :  Move
 Mouse : Aim
 Left-click : Shoot
 Escape : Quit
+
+## Other instructions
+* You can take 4 hits, and the 5th will kill you
+* You are invulnerable for 1 second after taking damage
+* Shasta has 50 health
