@@ -11,6 +11,8 @@ from pygame.locals import (
 )
 
 pygame.init()
+#pygame.font.init()
+myfont = pygame.font.SysFont('freesansbold.ttf', 30)
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -125,31 +127,38 @@ class Volcano(pygame.sprite.Sprite):
                 SCREEN_HEIGHT//2
             )
         )
-        self.healthMax = 50
+        self.healthMax = 25
         self.health = self.healthMax
+        self.alive = True
 
     def throwLava(self, target=None):
-        if target:
-            # adjust for using the center of screen as origin
-            target[0] -= SCREEN_WIDTH/2
-            target[1] -= SCREEN_HEIGHT/2
+        if self.alive:
+            if target:
+                # adjust for using the center of screen as origin
+                target[0] -= SCREEN_WIDTH/2
+                target[1] -= SCREEN_HEIGHT/2
 
-            # add some deviation to shots
-            target[0] += random.uniform(-SCREEN_WIDTH/5, SCREEN_WIDTH/5)
-            target[1] += random.uniform(-SCREEN_HEIGHT/5, SCREEN_HEIGHT/5)
+                # add some deviation to shots
+                target[0] += random.uniform(-SCREEN_WIDTH/5, SCREEN_WIDTH/5)
+                target[1] += random.uniform(-SCREEN_HEIGHT/5, SCREEN_HEIGHT/5)
 
-            # get hypotenuse and use that to calculate normalized vector
-            radius = math.sqrt(math.pow(target[0], 2) + math.pow(target[1], 2))
-            target = (target[0] / radius, target[1] / radius)
-        else:
-            # generate a vector by picking a random point on a circle and doing math
-            angle = random.uniform(0, 2 * math.pi)
-            target = (math.cos(angle), math.sin(angle))
-        new_Rock = LavaRock((self.rect.centerx + (self.surf.get_width()//2), self.rect.centery), target)
-        return new_Rock
+                # get hypotenuse and use that to calculate normalized vector
+                radius = math.sqrt(math.pow(target[0], 2) + math.pow(target[1], 2))
+                target = (target[0] / radius, target[1] / radius)
+            else:
+                # generate a vector by picking a random point on a circle and doing math
+                angle = random.uniform(0, 2 * math.pi)
+                target = (math.cos(angle), math.sin(angle))
+            new_Rock = LavaRock((self.rect.centerx + (self.surf.get_width()//2), self.rect.centery), target)
+            return new_Rock
 
     def takeDamage(self):
-        self.health -= 1
+        if self.alive:
+            self.health -= 1
+            if self.health == 0:
+                self.alive = False
+                self.surf = pygame.image.load("images/Mountain.png").convert()
+                self.surf.set_colorkey((255,255,255), RLEACCEL)
 
 class LavaRock(pygame.sprite.Sprite):
     def __init__(self, location, target):
@@ -199,8 +208,9 @@ def main():
                 # throw 5 lava rocks targetting the player
                 for i in range(0, 5):
                     new_rock = volcano.throwLava(player.getPosition())
-                    enemies.add(new_rock)
-                    all_sprites.add(new_rock)
+                    if new_rock:
+                        enemies.add(new_rock)
+                        all_sprites.add(new_rock)
             elif event.type == QUIT:
                 print("Quit by generic quit event")
                 running = False
@@ -231,6 +241,12 @@ def main():
 
         for projectile in pygame.sprite.spritecollide(volcano, projectiles, 1):
             volcano.takeDamage()
+
+        if not volcano.alive:
+            text = myfont.render('You did it!', False, (255, 255, 255))
+            textRect = text.get_rect()
+            textRect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 8)
+            screen.blit(text, textRect)
 
         pygame.display.flip()
 
