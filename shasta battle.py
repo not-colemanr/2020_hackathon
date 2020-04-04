@@ -21,6 +21,9 @@ class Player(pygame.sprite.Sprite):
         self.surf = pygame.Surface((25, 25))
         self.surf.fill((255, 255, 255))
         self.rect = self.surf.get_rect()
+        self.health = 5
+        self.invulnerableTimer = 0.000
+        self.clock = pygame.time.Clock()
 
     def update(self, pressed_keys):
         if pressed_keys[K_w]:
@@ -40,6 +43,25 @@ class Player(pygame.sprite.Sprite):
             self.rect.top = 0
         if self.rect.bottom >= SCREEN_HEIGHT:
             self.rect.bottom = SCREEN_HEIGHT
+
+        #time in milliseconds since we were last here
+        dt = self.clock.tick()
+        
+        if self.invulnerableTimer > 0:
+            self.invulnerableTimer -= dt
+
+            # flashing effect
+            roundedTimer = self.invulnerableTimer // 100
+            if roundedTimer in [9,7,5,3,1]:
+                self.surf.fill((50,50,50))
+            else:
+                self.surf.fill((255,255,255))
+
+    def takeDamage(self):
+        if self.invulnerableTimer <= 0:
+            self.health -= 1
+            self.invulnerableTimer = 1000
+            print("hurt, health is now ", self.health)
 
 class Volcano(pygame.sprite.Sprite):
     def __init__(self):
@@ -77,6 +99,7 @@ class LavaRock(pygame.sprite.Sprite):
 def main():
 
     screen = pygame.display.set_mode([SCREEN_WIDTH, SCREEN_HEIGHT])
+    clock = pygame.time.Clock()
 
     THROWLAVA = pygame.USEREVENT + 1
     pygame.time.set_timer(THROWLAVA, 1000)
@@ -90,7 +113,6 @@ def main():
     all_sprites.add(volcano)
 
     running = True
-    clock = pygame.time.Clock()
 
     while running:
         for event in pygame.event.get():
@@ -115,6 +137,9 @@ def main():
 
         for entity in all_sprites:
             screen.blit(entity.surf, entity.rect)
+
+        if pygame.sprite.spritecollideany(player, enemies):
+            player.takeDamage()
 
         pygame.display.flip()
 
