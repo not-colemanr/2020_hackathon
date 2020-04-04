@@ -14,6 +14,10 @@ pygame.init()
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
+FPS_CAP = 30
+BOSS_HEALTH_WIDTH = min(300, SCREEN_WIDTH//2)
+BOSS_HEALTH_POSITIONX = (SCREEN_WIDTH - BOSS_HEALTH_WIDTH) // 2
+LAVA_FREQUENCY = 1000 # in milliseconds
 
 class Player(pygame.sprite.Sprite):
 
@@ -26,65 +30,70 @@ class Player(pygame.sprite.Sprite):
         self.invulnerableTimer = 0
         self.shootTimer = 0
         self.clock = pygame.time.Clock()
+        self.alive = True
 
     def update(self, pressed_keys):
-        # move based on WASD input
-        if pressed_keys[K_w]:
-            self.rect.move_ip(0, -5)
-        if pressed_keys[K_s]:
-            self.rect.move_ip(0, 5)
-        if pressed_keys[K_a]:
-            self.rect.move_ip(-5, 0)
-        if pressed_keys[K_d]:
-            self.rect.move_ip(5, 0)
+        if self.alive:
+            # move based on WASD input
+            if pressed_keys[K_w]:
+                self.rect.move_ip(0, -5)
+            if pressed_keys[K_s]:
+                self.rect.move_ip(0, 5)
+            if pressed_keys[K_a]:
+                self.rect.move_ip(-5, 0)
+            if pressed_keys[K_d]:
+                self.rect.move_ip(5, 0)
 
-        # don't move outside the screen
-        if self.rect.left < 0:
-            self.rect.left = 0
-        if self.rect.right > SCREEN_WIDTH:
-            self.rect.right = SCREEN_WIDTH
-        if self.rect.top <= 0:
-            self.rect.top = 0
-        if self.rect.bottom >= SCREEN_HEIGHT:
-            self.rect.bottom = SCREEN_HEIGHT
+            # don't move outside the screen
+            if self.rect.left < 0:
+                self.rect.left = 0
+            if self.rect.right > SCREEN_WIDTH:
+                self.rect.right = SCREEN_WIDTH
+            if self.rect.top <= 0:
+                self.rect.top = 0
+            if self.rect.bottom >= SCREEN_HEIGHT:
+                self.rect.bottom = SCREEN_HEIGHT
 
-        #time in milliseconds since we were last here
-        dt = self.clock.tick()
+            #time in milliseconds since we were last here
+            dt = self.clock.tick()
 
-        if self.invulnerableTimer > 0:
-            self.invulnerableTimer -= dt
+            if self.invulnerableTimer > 0:
+                self.invulnerableTimer -= dt
 
-            # flashing effect
-            roundedTimer = self.invulnerableTimer // 100
-            if roundedTimer in [9,7,5,3,1]:
-                self.surf.fill((50,50,50))
-            else:
-                self.surf.fill((255,255,255))
-        
-        if self.shootTimer > 0:
-            self.shootTimer -= dt
+                # flashing effect
+                roundedTimer = self.invulnerableTimer // 100
+                if roundedTimer in [9,7,5,3,1]:
+                    self.surf.fill((50,50,50))
+                else:
+                    self.surf.fill((255,255,255))
+            
+            if self.shootTimer > 0:
+                self.shootTimer -= dt
 
     def takeDamage(self):
-        if self.invulnerableTimer <= 0:
-            self.health -= 1
-            self.invulnerableTimer = 1000
-            print("hurt, health is now ", self.health)
-            if self.health == 0:
-                self.kill()
+        if self.alive:
+            if self.invulnerableTimer <= 0:
+                self.health -= 1
+                self.invulnerableTimer = 1000
+                print("hurt, health is now ", self.health)
+                if self.health == 0:
+                    self.alive = False
+                    self.kill()
 
     def shoot(self):
-        if self.shootTimer <= 0:
-            target = list(pygame.mouse.get_pos())
-            # adjust for using the player as origin
-            target[0] -= self.rect.centerx - (self.surf.get_width()//2)
-            target[1] -= self.rect.centery - (self.surf.get_height()//2)
-            # get hypotenuse and use that to calculate normalized vector
-            radius = math.sqrt(math.pow(target[0], 2) + math.pow(target[1], 2))
-            target = (target[0] / radius, target[1] / radius)
-            new_Bullet = Bullet((self.rect.centerx + (self.surf.get_width()//2), self.rect.centery), target)
-            
-            self.shootTimer = 500
-            return new_Bullet
+        if self.alive:
+            if self.shootTimer <= 0:
+                target = list(pygame.mouse.get_pos())
+                # adjust for using the player as origin
+                target[0] -= self.rect.centerx - (self.surf.get_width()//2)
+                target[1] -= self.rect.centery - (self.surf.get_height()//2)
+                # get hypotenuse and use that to calculate normalized vector
+                radius = math.sqrt(math.pow(target[0], 2) + math.pow(target[1], 2))
+                target = (target[0] / radius, target[1] / radius)
+                new_Bullet = Bullet((self.rect.centerx + (self.surf.get_width()//2), self.rect.centery), target)
+                
+                self.shootTimer = 500
+                return new_Bullet
 
     def getPosition(self):
         return [self.rect[0], self.rect[1]]
@@ -116,7 +125,8 @@ class Volcano(pygame.sprite.Sprite):
                 SCREEN_HEIGHT//2
             )
         )
-        self.health = 100
+        self.healthMax = 50
+        self.health = self.healthMax
 
     def throwLava(self, target=None):
         if target:
@@ -137,6 +147,9 @@ class Volcano(pygame.sprite.Sprite):
             target = (math.cos(angle), math.sin(angle))
         new_Rock = LavaRock((self.rect.centerx + (self.surf.get_width()//2), self.rect.centery), target)
         return new_Rock
+
+    def takeDamage(self):
+        self.health -= 1
 
 class LavaRock(pygame.sprite.Sprite):
     def __init__(self, location, target):
@@ -160,7 +173,7 @@ def main():
     clock = pygame.time.Clock()
 
     THROWLAVA = pygame.USEREVENT + 1
-    pygame.time.set_timer(THROWLAVA, 1000)
+    pygame.time.set_timer(THROWLAVA, LAVA_FREQUENCY)
 
     player = Player()
     volcano = Volcano()
@@ -208,15 +221,21 @@ def main():
 
         screen.fill((0, 0, 0))
 
+        pygame.draw.rect(screen, (200, 0, 0), (BOSS_HEALTH_POSITIONX, SCREEN_HEIGHT-30, round(BOSS_HEALTH_WIDTH * (volcano.health / volcano.healthMax)), 30))
+
         for entity in all_sprites:
             screen.blit(entity.surf, entity.rect)
 
         if pygame.sprite.spritecollideany(player, enemies):
             player.takeDamage()
 
+        for projectile in pygame.sprite.spritecollide(volcano, projectiles, 1):
+            volcano.takeDamage()
+
         pygame.display.flip()
 
-        clock.tick(30)
+        # cap FPS
+        clock.tick(FPS_CAP)
 
 if __name__=="__main__":
    main()
